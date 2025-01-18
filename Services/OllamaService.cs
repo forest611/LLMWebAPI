@@ -8,7 +8,7 @@ namespace LLMWebAPI.Services;
 /// <summary>
 /// Ollamaとの通信を管理し、チャットセッションを処理するサービス
 /// </summary>
-public class OllamaService : IOllamaService
+public class OllamaService : ILLMService
 {
     private readonly ILogger<OllamaService> _logger;
     private readonly HttpClient _httpClient;
@@ -70,6 +70,40 @@ public class OllamaService : IOllamaService
     {
         _chatSessions.TryGetValue(id, out var session);
         return session;
+    }
+
+    /// <summary>
+    /// このサービスで利用可能なモデル一覧を取得する
+    /// </summary>
+    /// <returns>利用可能なモデル名のリスト</returns>
+    public async Task<List<string>> GetAvailableModelsAsync()
+    {
+        try
+        {
+            var response = await _httpClient.GetAsync($"{_ollamaBaseUrl}/api/tags");
+            response.EnsureSuccessStatusCode();
+
+            var content = await response.Content.ReadAsStringAsync();
+            var models = JsonSerializer.Deserialize<OllamaModelsResponse>(content);
+
+            return models?.Models?.Select(m => m.Name).ToList() ?? new List<string>();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get available models");
+            return new List<string>();
+        }
+    }
+
+    /// <summary>
+    /// 指定されたモデルがこのサービスで利用可能かどうかを確認する
+    /// </summary>
+    /// <param name="model">確認するモデル名</param>
+    /// <returns>利用可能な場合はtrue</returns>
+    public async Task<bool> IsModelAvailableAsync(string model)
+    {
+        var models = await GetAvailableModelsAsync();
+        return models.Contains(model);
     }
 
     /// <summary>

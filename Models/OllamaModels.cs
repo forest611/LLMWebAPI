@@ -67,3 +67,30 @@ public class OllamaChatMessage
     [JsonPropertyName("content")]
     public string Content { get; set; } = string.Empty;
 }
+
+/// <summary>
+/// Ollamaのモデル情報のレスポンス
+/// </summary>
+public class OllamaModelsResponse
+{
+    [JsonPropertyName("models")]
+    public List<OllamaModelInfo>? Models { get; set; }
+}
+
+/// <summary>
+/// Ollamaの個別モデル情報
+/// </summary>
+public class OllamaModelInfo
+{
+    [JsonPropertyName("name")]
+    public string Name { get; set; } = string.Empty;
+
+    [JsonPropertyName("size")]
+    public long Size { get; set; }
+
+    [JsonPropertyName("digest")]
+    public string Digest { get; set; } = string.Empty;
+
+    [JsonPropertyName("modified_at")]
+    public DateTime ModifiedAt { get; set; }
+}

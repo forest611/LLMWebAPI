@@ -12,18 +12,18 @@ namespace LLMWebAPI.Controllers;
 public class OllamaController : ControllerBase
 {
     private readonly ILogger<OllamaController> _logger;
-    private readonly IOllamaService _ollamaService;
+    private readonly ILLMService _llmService;
     private const string DefaultModel = "gemma2:2b";
 
     /// <summary>
     /// OllamaControllerのコンストラクタ
     /// </summary>
     /// <param name="logger">ロガーインスタンス</param>
-    /// <param name="ollamaService">Ollamaサービス</param>
-    public OllamaController(ILogger<OllamaController> logger, IOllamaService ollamaService)
+    /// <param name="llmService">LLMサービス</param>
+    public OllamaController(ILogger<OllamaController> logger, ILLMService llmService)
     {
         _logger = logger;
-        _ollamaService = ollamaService;
+        _llmService = llmService;
     }
 
     /// <summary>
@@ -41,7 +41,7 @@ public class OllamaController : ControllerBase
             
             _logger.LogInformation("Generating new chat. ID: {Id}, Model: {Model}", id, model);
             
-            var response = await _ollamaService.ProcessChatAsync(id, model, request.Prompt);
+            var response = await _llmService.ProcessChatAsync(id, model, request.Prompt);
             return Ok(response);
         }
         catch (Exception ex)
@@ -64,7 +64,7 @@ public class OllamaController : ControllerBase
         {
             _logger.LogInformation("Continue chat request received. ID: {Id}", request.Id);
 
-            var session = _ollamaService.GetChatSession(request.Id);
+            var session = _llmService.GetChatSession(request.Id);
             if (session == null)
             {
                 return await CreateNewChat(request);
@@ -75,7 +75,7 @@ public class OllamaController : ControllerBase
                 return BadRequest(new { message = "Model not set" });
             }
 
-            var response = await _ollamaService.ProcessChatAsync(request.Id, session.Model, request.Prompt);
+            var response = await _llmService.ProcessChatAsync(request.Id, session.Model, request.Prompt);
             return Ok(response);
         }
         catch (Exception ex)
@@ -97,7 +97,7 @@ public class OllamaController : ControllerBase
         {
             _logger.LogInformation("Get chat request received. ID: {Id}", id);
 
-            var history = _ollamaService.GetChatHistory(id);
+            var history = _llmService.GetChatHistory(id);
             if (!history.Any())
             {
                 return NotFound(new { message = "Chat not found" });
@@ -121,7 +121,7 @@ public class OllamaController : ControllerBase
     {
         _logger.LogInformation("Creating new chat session for ID: {Id}", request.Id);
         
-        var response = await _ollamaService.ProcessChatAsync(
+        var response = await _llmService.ProcessChatAsync(
             request.Id,
             DefaultModel,
             request.Prompt

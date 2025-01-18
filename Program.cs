@@ -7,8 +7,8 @@ builder.Services.AddControllers(); // コントローラーを追加
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Register Ollama service
-builder.Services.AddScoped<IOllamaService, OllamaService>();
+// Add LLM services
+builder.Services.AddSingleton<ILLMService, OllamaService>();
 
 var app = builder.Build();
 
