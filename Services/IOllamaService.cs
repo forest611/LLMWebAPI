@@ -24,4 +24,11 @@ public interface IOllamaService
     /// <param name="id">チャットセッションID</param>
     /// <returns>チャットメッセージのリスト。セッションが存在しない場合は空のリスト</returns>
     List<ChatMessage> GetChatHistory(string id);
+
+    /// <summary>
+    /// 指定されたセッションIDのチャットセッションを取得する
+    /// </summary>
+    /// <param name="id">チャットセッションID</param>
+    /// <returns>チャットセッション。セッションが存在しない場合はnull</returns>
+    ChatSession? GetChatSession(string id);
 }

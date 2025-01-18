@@ -38,20 +38,16 @@ public class OllamaService : IOllamaService
     {
         try
         {
-            _logger.LogInformation("Processing chat request. ID: {Id}, Model: {Model}", id, model);
-
+            _logger.LogInformation("Processing chat. ID: {Id}, Model: {Model}", id, model);
             var session = GetOrCreateSession(id, model);
-            AddUserMessage(session, prompt);
-
-            var response = await GenerateResponseAsync(session);
-            AddAssistantMessage(session, response);
-
-            return CreateSuccessResponse(id, model, response);
+            
+            await ProcessUserMessage(session, prompt);
+            return await CreateSuccessResponse(id, model, session.Messages.Last().Content);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error processing chat request {Id}", id);
-            return CreateErrorResponse(id, model, ex.Message);
+            _logger.LogError(ex, "Chat processing failed. ID: {Id}", id);
+            return CreateErrorResponse(id, model);
         }
     }
 
@@ -62,11 +58,18 @@ public class OllamaService : IOllamaService
     /// <returns>チャットメッセージのリスト。セッションが存在しない場合は空のリスト</returns>
     public List<ChatMessage> GetChatHistory(string id)
     {
-        if (_chatSessions.TryGetValue(id, out var session))
-        {
-            return session.Messages.ToList();
-        }
-        return new List<ChatMessage>();
+        return GetChatSession(id)?.Messages.ToList() ?? new List<ChatMessage>();
+    }
+
+    /// <summary>
+    /// 指定されたセッションIDのチャットセッションを取得する
+    /// </summary>
+    /// <param name="id">チャットセッションID</param>
+    /// <returns>チャットセッション。セッションが存在しない場合はnull</returns>
+    public ChatSession? GetChatSession(string id)
+    {
+        _chatSessions.TryGetValue(id, out var session);
+        return session;
     }
 
     /// <summary>
@@ -80,36 +83,32 @@ public class OllamaService : IOllamaService
         return _chatSessions.GetOrAdd(id, _ => new ChatSession
         {
             Id = id,
-            Model = model
+            Model = model,
+            Messages = new List<ChatMessage>()
         });
     }
 
     /// <summary>
-    /// セッションにユーザーメッセージを追加する
+    /// ユーザーメッセージを処理し、AIからの応答を生成する
     /// </summary>
     /// <param name="session">チャットセッション</param>
-    /// <param name="content">メッセージ内容</param>
-    private void AddUserMessage(ChatSession session, string content)
+    /// <param name="prompt">ユーザーからの入力</param>
+    private async Task ProcessUserMessage(ChatSession session, string prompt)
     {
-        session.Messages.Add(new ChatMessage
-        {
-            Role = "user",
-            Content = content
-        });
+        AddMessage(session, "user", prompt);
+        var response = await GenerateResponseAsync(session);
+        AddMessage(session, "assistant", response);
     }
 
     /// <summary>
-    /// セッションにアシスタントメッセージを追加する
+    /// セッションにメッセージを追加する
     /// </summary>
     /// <param name="session">チャットセッション</param>
+    /// <param name="role">メッセージの役割（user/assistant）</param>
     /// <param name="content">メッセージ内容</param>
-    private void AddAssistantMessage(ChatSession session, string content)
+    private void AddMessage(ChatSession session, string role, string content)
     {
-        session.Messages.Add(new ChatMessage
-        {
-            Role = "assistant",
-            Content = content
-        });
+        session.Messages.Add(new ChatMessage { Role = role, Content = content });
     }
 
     /// <summary>
@@ -119,7 +118,31 @@ public class OllamaService : IOllamaService
     /// <returns>生成された応答</returns>
     private async Task<string> GenerateResponseAsync(ChatSession session)
     {
-        var request = new OllamaChatRequest
+        var request = CreateOllamaRequest(session);
+        var content = SerializeRequest(request);
+
+        try
+        {
+            var response = await _httpClient.PostAsync($"{_ollamaBaseUrl}/api/chat", content);
+            response.EnsureSuccessStatusCode();
+
+            return await ParseResponse(response);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Ollama API error");
+            throw new Exception("Failed to get response", ex);
+        }
+    }
+
+    /// <summary>
+    /// チャットセッションからOllamaリクエストを作成する
+    /// </summary>
+    /// <param name="session">チャットセッション</param>
+    /// <returns>Ollamaリクエスト</returns>
+    private OllamaChatRequest CreateOllamaRequest(ChatSession session)
+    {
+        return new OllamaChatRequest
         {
             Model = session.Model,
             Messages = session.Messages.Select(m => new OllamaChatMessage
@@ -128,30 +151,35 @@ public class OllamaService : IOllamaService
                 Content = m.Content
             }).ToList()
         };
+    }
 
+    /// <summary>
+    /// リクエストをJSONにシリアライズする
+    /// </summary>
+    /// <param name="request">Ollamaリクエスト</param>
+    /// <returns>シリアライズされたコンテンツ</returns>
+    private StringContent SerializeRequest(OllamaChatRequest request)
+    {
         var jsonRequest = JsonSerializer.Serialize(request);
-        var content = new StringContent(jsonRequest, Encoding.UTF8, "application/json");
+        return new StringContent(jsonRequest, Encoding.UTF8, "application/json");
+    }
 
-        try
+    /// <summary>
+    /// Ollamaからのレスポンスを解析する
+    /// </summary>
+    /// <param name="response">HTTPレスポンス</param>
+    /// <returns>AIからの応答テキスト</returns>
+    private async Task<string> ParseResponse(HttpResponseMessage response)
+    {
+        var jsonResponse = await response.Content.ReadAsStringAsync();
+        var ollamaResponse = JsonSerializer.Deserialize<OllamaChatResponse>(jsonResponse);
+
+        if (ollamaResponse?.Message?.Content == null)
         {
-            var response = await _httpClient.PostAsync($"{_ollamaBaseUrl}/api/chat", content);
-            response.EnsureSuccessStatusCode();
-
-            var jsonResponse = await response.Content.ReadAsStringAsync();
-            var ollamaResponse = JsonSerializer.Deserialize<OllamaChatResponse>(jsonResponse);
-
-            if (ollamaResponse?.Message?.Content == null)
-            {
-                throw new Exception("Invalid response from Ollama API");
-            }
-
-            return ollamaResponse.Message.Content;
+            throw new Exception("Empty response from Ollama");
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error calling Ollama API");
-            throw new Exception("Failed to generate response from Ollama", ex);
-        }
+
+        return ollamaResponse.Message.Content;
     }
 
     /// <summary>
@@ -161,7 +189,7 @@ public class OllamaService : IOllamaService
     /// <param name="model">使用したモデル名</param>
     /// <param name="response">AI応答</param>
     /// <returns>成功レスポンス</returns>
-    private ChatResponse CreateSuccessResponse(string id, string model, string response)
+    private async Task<ChatResponse> CreateSuccessResponse(string id, string model, string response)
     {
         return new ChatResponse
         {
@@ -177,16 +205,15 @@ public class OllamaService : IOllamaService
     /// </summary>
     /// <param name="id">チャットセッションID</param>
     /// <param name="model">使用したモデル名</param>
-    /// <param name="errorMessage">エラーメッセージ</param>
     /// <returns>エラーレスポンス</returns>
-    private ChatResponse CreateErrorResponse(string id, string model, string errorMessage)
+    private ChatResponse CreateErrorResponse(string id, string model)
     {
         return new ChatResponse
         {
             Id = id,
             Model = model,
             Status = ChatStatus.Error,
-            Error = errorMessage
+            Error = "Chat processing failed"
         };
     }
 }
