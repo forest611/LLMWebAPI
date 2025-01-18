@@ -5,33 +5,33 @@ using LLMWebAPI.Services;
 namespace LLMWebAPI.Controllers;
 
 /// <summary>
-/// Ollamaとのチャット機能を提供するコントローラー
+/// OpenAIとのチャット機能を提供するコントローラー
 /// </summary>
 [ApiController]
 [Route("llm/[controller]")]
-public class OllamaController : ControllerBase
+public class OpenAIController : ControllerBase
 {
-    private readonly ILogger<OllamaController> _logger;
-    private readonly ILLMService _llmService;
+    private readonly ILogger<OpenAIController> _logger;
+    private readonly OpenAIService _llmService;
     private readonly string _defaultModel;
 
     /// <summary>
-    /// OllamaControllerのコンストラクタ
+    /// OpenAIControllerのコンストラクタ
     /// </summary>
     /// <param name="logger">ロガーインスタンス</param>
-    /// <param name="llmService">LLMサービス</param>
+    /// <param name="llmService">LLMサービスインスタンス</param>
     /// <param name="configuration">設定情報</param>
-    public OllamaController(ILogger<OllamaController> logger, OllamaService llmService, IConfiguration configuration)
+    public OpenAIController(ILogger<OpenAIController> logger, OpenAIService llmService, IConfiguration configuration)
     {
         _logger = logger;
         _llmService = llmService;
-        _defaultModel = configuration["Ollama:DefaultModel"] ?? "gemma2:2b";
+        _defaultModel = configuration["OpenAI:DefaultModel"] ?? "gpt-3.5-turbo";
     }
 
     /// <summary>
-    /// 新規チャットを生成する
+    /// 新しいチャットを開始する
     /// </summary>
-    /// <param name="request">生成リクエスト</param>
+    /// <param name="request">チャットリクエスト</param>
     /// <returns>チャットレスポンス</returns>
     [HttpPost("generate")]
     public async Task<ActionResult<ChatResponse>> Generate([FromBody] GenerateRequest request)
@@ -109,13 +109,13 @@ public class OllamaController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to get chat {Id}", id);
+            _logger.LogError(ex, "Failed to get chat history. ID: {Id}", id);
             return StatusCode(500, new { message = "Failed to get chat history" });
         }
     }
 
     /// <summary>
-    /// 新規チャットを作成する
+    /// 新しいチャットを作成する（内部メソッド）
     /// </summary>
     /// <param name="request">チャットリクエスト</param>
     /// <returns>チャットレスポンス</returns>
