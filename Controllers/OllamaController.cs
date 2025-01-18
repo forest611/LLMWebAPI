@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using LLMWebAPI.Models;
 using LLMWebAPI.Services;
+using Microsoft.Extensions.Configuration;
 
 namespace LLMWebAPI.Controllers;
 
@@ -13,17 +14,19 @@ public class OllamaController : ControllerBase
 {
     private readonly ILogger<OllamaController> _logger;
     private readonly ILLMService _llmService;
-    private const string DefaultModel = "gemma2:2b";
+    private readonly string _defaultModel;
 
     /// <summary>
     /// OllamaControllerのコンストラクタ
     /// </summary>
     /// <param name="logger">ロガーインスタンス</param>
     /// <param name="llmService">LLMサービス</param>
-    public OllamaController(ILogger<OllamaController> logger, ILLMService llmService)
+    /// <param name="configuration">設定情報</param>
+    public OllamaController(ILogger<OllamaController> logger, ILLMService llmService, IConfiguration configuration)
     {
         _logger = logger;
         _llmService = llmService;
+        _defaultModel = configuration["Ollama:DefaultModel"] ?? "gemma2:2b";
     }
 
     /// <summary>
@@ -37,7 +40,7 @@ public class OllamaController : ControllerBase
         try
         {
             var id = Guid.NewGuid().ToString("N");
-            var model = string.IsNullOrEmpty(request.Model) ? DefaultModel : request.Model;
+            var model = string.IsNullOrEmpty(request.Model) ? _defaultModel : request.Model;
             
             _logger.LogInformation("Generating new chat. ID: {Id}, Model: {Model}", id, model);
             
@@ -123,7 +126,7 @@ public class OllamaController : ControllerBase
         
         var response = await _llmService.ProcessChatAsync(
             request.Id,
-            DefaultModel,
+            _defaultModel,
             request.Prompt
         );
         
