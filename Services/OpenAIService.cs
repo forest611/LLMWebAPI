@@ -110,7 +110,7 @@ public class OpenAIService : ILLMService
     {
         try
         {
-            var response = await _httpClient.GetAsync("/models");
+            var response = await _httpClient.GetAsync("/v1/models");
             response.EnsureSuccessStatusCode();
 
             var content = await response.Content.ReadAsStringAsync();
@@ -196,7 +196,7 @@ public class OpenAIService : ILLMService
             TopP = 0.95f
         };
 
-        var response = await _httpClient.PostAsJsonAsync("/chat/completions", options);
+        var response = await _httpClient.PostAsJsonAsync("/v1/chat/completions", options);
         response.EnsureSuccessStatusCode();
 
         var result = await response.Content.ReadFromJsonAsync<ChatCompletionResponse>();
