@@ -94,14 +94,3 @@ public class OllamaModelInfo
     [JsonPropertyName("modified_at")]
     public DateTime ModifiedAt { get; set; }
 }
-
-/// <summary>
-/// Ollamaのモデル情報を格納するクラス
-/// </summary>
-public class OllamaModel
-{
-    public string Name { get; set; } = "";
-    public string Modified_at { get; set; } = "";
-    public long Size { get; set; }
-    public string Digest { get; set; } = "";
-}
