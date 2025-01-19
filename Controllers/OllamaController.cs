@@ -115,6 +115,27 @@ public class OllamaController : ControllerBase
     }
 
     /// <summary>
+    /// 使用可能なモデル一覧を取得
+    /// </summary>
+    /// <returns>モデル一覧</returns>
+    [HttpGet("models")]
+    [ProducesResponseType(typeof(List<string>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> GetModels()
+    {
+        try
+        {
+            var models = await _llmService.GetAvailableModelsAsync();
+            return Ok(models);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get models");
+            return StatusCode(500, new { Error = "Failed to get models" });
+        }
+    }
+
+    /// <summary>
     /// 新規チャットを作成する
     /// </summary>
     /// <param name="request">チャットリクエスト</param>
