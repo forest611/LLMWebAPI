@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using LLMWebAPI.Models;
 using LLMWebAPI.Services;
+using LLMWebAPI.Authentication;
 
 namespace LLMWebAPI.Controllers;
 
@@ -8,7 +9,8 @@ namespace LLMWebAPI.Controllers;
 /// Ollamaとのチャット機能を提供するコントローラー
 /// </summary>
 [ApiController]
-[Route("llm/[controller]")]
+[Route("api/ollama")]
+[ApiKey]
 public class OllamaController : ControllerBase
 {
     private readonly ILogger<OllamaController> _logger;
