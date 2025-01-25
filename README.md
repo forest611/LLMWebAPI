@@ -133,6 +133,58 @@ docker run -d \
    - ポートが既に使用されている場合は、別のポートを指定してください
    - 証明書関連のエラーが発生した場合は、証明書の設定を確認してください
 
+## Docker
+
+### イメージのプル
+
+Docker Hubから最新のイメージをプルします：
+
+```bash
+docker pull forest611/llm-web-api:latest
+```
+
+### コンテナの実行
+
+以下のコマンドでコンテナを起動します：
+
+```bash
+docker run -d \
+  -p 7070:7070 \
+  -p 7071:7071 \
+  -e Authentication__ApiKey="your-api-key" \
+  -e OpenAI__ApiKey="your-openai-key" \
+  -e Ollama__BaseUrl="http://host.docker.internal:11434" \
+  forest611/llm-web-api
+```
+
+### 環境変数
+
+以下の環境変数を設定する必要があります：
+
+| 環境変数 | 説明 | 必須 |
+|----------|------|------|
+| `Authentication__ApiKey` | APIキー認証用のキー | ✅ |
+| `OpenAI__ApiKey` | OpenAI APIのキー | ✅ |
+| `Ollama__BaseUrl` | OllamaサーバーのベースURL | ✅ |
+
+### ポート
+
+- `7070`: HTTP
+- `7071`: HTTPS
+
+### 注意事項
+
+1. Ollamaサーバーへの接続
+   - Docker内から`localhost`でOllamaサーバーにアクセスする場合は、`host.docker.internal`を使用してください
+   - 例：`http://host.docker.internal:11434`
+
+2. HTTPS
+   - デフォルトでHTTPSが有効になっています
+   - 自己署名証明書を使用しているため、開発環境では`-k`オプションを使用してください
+   ```bash
+   curl -k -H "X-API-KEY: your-api-key" https://localhost:7071/api/ollama/models
+   ```
+
 ## 認証
 
 このAPIはAPIキー認証を使用しています。
@@ -194,7 +246,7 @@ curl -H "X-API-KEY: your-secret-key" http://localhost:7070/api/openai/chat
 
 - エンドポイント: `POST /llm/ollama/chat`
 - 機能: Ollamaを使用したチャット応答の生成
-- リクエスト例:
+- リクエスト例：
 ```json
 {
   "prompt": "こんにちは！"

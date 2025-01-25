@@ -1,5 +1,6 @@
 using LLMWebAPI.Services;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
