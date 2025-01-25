@@ -16,7 +16,13 @@ services:
 
   ollama:
     image: ollama/ollama:latest
-    platform: linux/arm64
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
     ports:
       - "11434:11434"
     volumes:

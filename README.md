@@ -239,6 +239,35 @@ sudo systemctl restart docker
 4. デフォルトモデル
    - `gemma:2b`: 起動時に自動でダウンロード
 
+#### プラットフォーム別の注意事項
+
+1. Apple Silicon (M1/M2) Mac
+   - GPU（Metal）サポートは現在のOllamaでは利用できません
+   - `linux/arm64`プラットフォームで実行されます
+   - CPUモードで動作します
+
+2. NVIDIA GPU搭載マシン
+   - 以下の前提条件が必要です：
+     - NVIDIAドライバー
+     - NVIDIA Container Toolkit
+   - `docker-compose.gpu.yml`を使用してください：
+   ```bash
+   # docker-compose.gpu.ymlにコピー
+   cp docker-compose.yml docker-compose.gpu.yml
+   
+   # 以下の設定を追加（ollamaサービスに）
+   deploy:
+     resources:
+       reservations:
+         devices:
+           - driver: nvidia
+             count: 1
+             capabilities: [gpu]
+   
+   # GPU版で起動
+   docker compose -f docker-compose.gpu.yml up -d
+   ```
+
 #### 使用方法
 
 1. 環境変数の設定
