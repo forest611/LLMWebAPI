@@ -185,6 +185,89 @@ docker run -d \
    curl -k -H "X-API-KEY: your-api-key" https://localhost:7071/api/ollama/models
    ```
 
+## Docker Compose
+
+Docker Composeを使用して、OllamaとAPIを一緒に起動することもできます：
+
+```bash
+docker compose up -d
+```
+
+#### 前提条件
+
+1. NVIDIAドライバーとNVIDIA Container Toolkitがインストールされていること
+```bash
+# NVIDIA Container Toolkitのインストール
+curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg \
+  && curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list | \
+    sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' | \
+    sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
+
+sudo apt-get update && sudo apt-get install -y nvidia-container-toolkit
+sudo nvidia-ctk runtime configure --runtime=docker
+sudo systemctl restart docker
+```
+
+2. Docker ComposeがGPUサポートを有効にしていること
+```bash
+# /etc/docker/daemon.jsonに以下を追加
+{
+    "default-runtime": "nvidia",
+    "runtimes": {
+        "nvidia": {
+            "path": "nvidia-container-runtime",
+            "runtimeArgs": []
+        }
+    }
+}
+```
+
+#### 構成
+
+1. サービス
+   - `api`: LLM Web API
+   - `ollama`: Ollamaサーバー（GPU対応）
+
+2. 環境変数
+   - `Authentication__ApiKey`: APIキー認証用のキー
+   - `OpenAI__ApiKey`: OpenAI APIのキー
+   - `Ollama__BaseUrl`: OllamaサーバーのベースURL（自動設定）
+
+3. ボリューム
+   - `ollama_data`: Ollamaのモデルデータを永続化
+
+4. デフォルトモデル
+   - `gemma:2b`: 起動時に自動でダウンロード
+
+#### 使用方法
+
+1. 環境変数の設定
+```bash
+# .envファイルを作成
+echo "OPENAI_API_KEY=your-openai-key-here" > .env
+echo "API_KEY=your-api-key-here" >> .env
+```
+
+2. サービスの起動
+```bash
+docker compose up -d
+```
+
+3. ログの確認
+```bash
+# すべてのサービスのログを表示
+docker compose logs -f
+
+# 特定のサービスのログを表示
+docker compose logs -f api
+docker compose logs -f ollama
+```
+
+4. サービスの停止
+```bash
+docker compose down
+```
+
 ## 認証
 
 このAPIはAPIキー認証を使用しています。

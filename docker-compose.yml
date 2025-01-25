@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  api:
+    image: forest611/llm-web-api:latest
+    ports:
+      - "7070:7070"
+      - "7071:7071"
+    environment:
+      - Authentication__ApiKey=your-api-key-here
+      - OpenAI__ApiKey=your-openai-key-here
+      - Ollama__BaseUrl=http://ollama:11434
+    depends_on:
+      ollama:
+        condition: service_healthy
+
+  ollama:
+    image: ollama/ollama:latest
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    command: >
+      sh -c "ollama serve & 
+             sleep 10 && 
+             ollama pull gemma:2b && 
+             tail -f /dev/null"
+
+volumes:
+  ollama_data:
