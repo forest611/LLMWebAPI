@@ -133,6 +133,58 @@ docker run -d \
    - ポートが既に使用されている場合は、別のポートを指定してください
    - 証明書関連のエラーが発生した場合は、証明書の設定を確認してください
 
+## 認証
+
+このAPIはAPIキー認証を使用しています。
+
+### APIキーの設定
+
+1. `appsettings.json`での設定：
+```json
+{
+  "Authentication": {
+    "ApiKey": "your-api-key-here"
+  }
+}
+```
+
+2. 環境変数での設定（推奨）：
+```bash
+export Authentication__ApiKey="your-secret-key"
+```
+
+3. Docker実行時の設定：
+```bash
+docker run -d \
+  -p 7070:7070 \
+  -p 7071:7071 \
+  -e Authentication__ApiKey="your-secret-key" \
+  forest611/llm-web-api
+```
+
+### APIの使用方法
+
+1. curlでの使用例：
+```bash
+curl -H "X-API-KEY: your-secret-key" http://localhost:7070/api/openai/chat
+```
+
+2. HTTPクライアントでの使用：
+すべてのリクエストに`X-API-KEY`ヘッダーを追加してください。
+
+3. Swagger UIでのテスト：
+   1. Swagger UI（`/swagger`）にアクセス
+   2. 右上の「Authorize」ボタンをクリック
+   3. APIキーを入力
+   4. 「Authorize」をクリック
+
+### セキュリティに関する注意
+
+1. 本番環境では、必ず環境変数でAPIキーを設定してください
+2. APIキーは強力なランダム文字列を使用してください
+3. APIキーは定期的に更新することをお勧めします
+4. HTTPSと組み合わせて使用してください
+
 ## API エンドポイント
 
 基本的なAPIの使用方法については以下を参照してください。
