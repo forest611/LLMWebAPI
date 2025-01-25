@@ -42,11 +42,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-// HTTPSリダイレクションを開発環境では無効化
-if (!app.Environment.IsDevelopment())
-{
-    app.UseHttpsRedirection();
-}
+// HTTPSリダイレクションを常に有効化
+app.UseHttpsRedirection();
 
 app.UseRouting(); // ルーティングを追加
 app.UseAuthorization();

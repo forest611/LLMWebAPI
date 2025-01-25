@@ -2,6 +2,10 @@ FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
 USER $APP_UID
 WORKDIR /app
 EXPOSE 7070
+EXPOSE 7071
+
+# 証明書をコピー
+COPY ["certs/aspnetapp.pfx", "/https/aspnetapp.pfx"]
 
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 ARG BUILD_CONFIGURATION=Release
